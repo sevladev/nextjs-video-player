@@ -179,17 +179,6 @@ export const VideoPlayer = () => {
       className="relative w-full h-full"
       onMouseMove={handleMouseMove}
     >
-      <style jsx>{`
-        video::-webkit-media-controls {
-          display: none !important;
-        }
-        .fullscreen .controls {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-        }
-      `}</style>
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
