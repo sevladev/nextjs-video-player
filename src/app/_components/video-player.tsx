@@ -47,6 +47,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && !isDragging) {
+      console.log(videoRef.current.duration);
       setCurrentTime(videoRef.current.currentTime);
     }
   }, [isDragging]);
@@ -185,7 +186,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         ref={videoRef}
         className="w-full h-full object-cover"
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
+        onPlay={handleLoadedMetadata}
         controls={false}
         disablePictureInPicture
         controlsList="nodownload noremoteplayback nofullscreen"
