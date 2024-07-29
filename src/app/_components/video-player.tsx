@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, useEffect, useCallback } from "react";
 import {
   IoPlay,
@@ -12,7 +10,11 @@ import {
   IoPlaySkipForward,
 } from "react-icons/io5";
 
-export const VideoPlayer = () => {
+interface VideoPlayerProps {
+  videoUrl: string;
+}
+
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -190,10 +192,7 @@ export const VideoPlayer = () => {
         onClick={handleClickTogglePlay}
         onDoubleClick={handleDoubleClickToggleScreen}
       >
-        <source
-          src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          type="video/mp4"
-        />
+        <source src={videoUrl} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
       <div
