@@ -54,6 +54,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [duration, setDuration] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showVolume, setShowVolume] = useState(false);
+  const [currentVolume, setCurrentVolume] = useState(0);
   const [mouseMoving, setMouseMoving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [previewSrc, setPreviewSrc] = useState("");
@@ -125,6 +127,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       setMuted(!muted);
     }
   }, [muted]);
+
+  const handleVolumeChange = useCallback((value: number) => {
+    if (videoRef.current) {
+      const currentVolume = value;
+      videoRef.current.volume = currentVolume;
+      setCurrentVolume(currentVolume);
+    }
+  }, []);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && !isDragging) {
@@ -287,6 +297,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       .finally(() => {
         setPageLoaded(true);
       });
+  }, [videoUrl]);
+
+  useEffect(() => {
+    return () => {
+      console.log("desfeito");
+    };
   }, []);
 
   if (!pageLoaded) {
@@ -313,6 +329,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
           flexDir="column"
           gap={1}
           transform="translateX(-40%)"
+          minW="200px"
+          minH="120px"
         >
           <ChakraImage
             src={previewSrc}
@@ -334,6 +352,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         onClick={handleClickTogglePlay}
         onDoubleClick={handleDoubleClickToggleScreen}
         crossOrigin="anonymous"
+        onContextMenu={(e) => e.preventDefault()}
       >
         <source src={videoSrc} type="video/mp4" />
         Your browser does not support the video tag.
@@ -356,7 +375,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         <Flex gap={2} flexDir="column" w="100%">
           <Flex gap={4} align="center">
             <Slider
-              colorScheme="messenger"
               focusThumbOnChange={false}
               value={currentTime}
               max={duration}
@@ -370,13 +388,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
               h={4}
             >
               <SliderTrack>
-                <SliderFilledTrack />
+                <SliderFilledTrack bg="#fff" />
               </SliderTrack>
             </Slider>
             <Text>{formatTime(duration - currentTime)}</Text>
           </Flex>
           <Flex justify="space-between" w="100%">
-            <Box>
+            <Flex>
               <IconButton
                 aria-label="Skip back"
                 Icon={IoPlaySkipBack}
@@ -398,14 +416,39 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
                 bg="transparent"
                 _hover={{ bg: "transparent" }}
               />
-              <IconButton
-                aria-label="Mute/Unmute"
-                Icon={muted ? IoVolumeMute : IoVolumeHigh}
-                onClick={toggleMute}
-                bg="transparent"
-                _hover={{ bg: "transparent" }}
-              />
-            </Box>
+              <Flex
+                onMouseMove={() => setShowVolume(true)}
+                onMouseLeave={() => setShowVolume(false)}
+                gap={2}
+              >
+                <IconButton
+                  aria-label="Mute/Unmute"
+                  Icon={muted ? IoVolumeMute : IoVolumeHigh}
+                  onClick={toggleMute}
+                  bg="transparent"
+                  _hover={{ bg: "transparent" }}
+                />
+                {showVolume && (
+                  <Slider
+                    focusThumbOnChange={false}
+                    ml={2}
+                    w={86}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onChange={handleVolumeChange}
+                    value={currentVolume}
+                    transition="opacity 2s"
+                    opacity={showVolume ? 1 : 0}
+                  >
+                    <SliderTrack>
+                      <SliderFilledTrack bg="#fff" />
+                    </SliderTrack>
+                    <SliderThumb />
+                  </Slider>
+                )}
+              </Flex>
+            </Flex>
             <IconButton
               aria-label="Full screen"
               Icon={isFullScreen ? IoContract : IoExpand}

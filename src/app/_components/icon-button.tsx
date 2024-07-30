@@ -15,7 +15,7 @@ export const IconButton = ({ Icon, ...props }: IconButtonProps) => {
       icon={
         <ChakraIcon
           transition="width 0.3s ease, height 0.3s ease"
-          _hover={{ w: 34, h: 34 }}
+          _hover={{ w: 34, h: 34, cursor: "pointer" }}
           as={Icon}
           w={26}
           h={26}

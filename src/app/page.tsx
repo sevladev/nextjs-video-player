@@ -8,6 +8,8 @@ const Home: NextPage = () => {
   const videoUrl =
     "http://localhost:3001/video/afeeb5ec-6222-427b-a911-eee65ab54778.mp4";
 
+  console.log(window);
+
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
       <Head>
