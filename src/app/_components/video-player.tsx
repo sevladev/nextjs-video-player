@@ -49,7 +49,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
 
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -125,6 +125,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
     if (videoRef.current) {
       videoRef.current.muted = !muted;
       setMuted(!muted);
+      if (!muted) {
+        videoRef.current.volume = 0;
+        setCurrentVolume(0);
+      } else {
+        videoRef.current.volume = 1;
+        setCurrentVolume(1);
+      }
     }
   }, [muted]);
 
@@ -133,6 +140,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       const currentVolume = value;
       videoRef.current.volume = currentVolume;
       setCurrentVolume(currentVolume);
+      if (!value) {
+        setMuted(true);
+      } else {
+        setMuted(false);
+      }
     }
   }, []);
 
@@ -297,13 +309,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       .finally(() => {
         setPageLoaded(true);
       });
-  }, [videoUrl]);
 
-  useEffect(() => {
     return () => {
-      console.log("desfeito");
+      URL.revokeObjectURL(videoUrl);
     };
-  }, []);
+  }, [videoUrl]);
 
   if (!pageLoaded) {
     return null;
@@ -353,6 +363,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         onDoubleClick={handleDoubleClickToggleScreen}
         crossOrigin="anonymous"
         onContextMenu={(e) => e.preventDefault()}
+        autoPlay
+        muted={muted}
       >
         <source src={videoSrc} type="video/mp4" />
         Your browser does not support the video tag.
