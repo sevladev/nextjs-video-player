@@ -8,12 +8,15 @@ import {
   Flex,
   Text,
   Icon,
+  Fade,
 } from "@chakra-ui/react";
 import {
   IoPlay,
   IoPause,
   IoVolumeHigh,
   IoVolumeMute,
+  IoVolumeLow,
+  IoVolumeMedium,
   IoExpand,
   IoContract,
   IoPlaySkipBack,
@@ -41,6 +44,18 @@ const formatTime = (seconds: number) => {
     : `${formattedMinutes}:${formattedSeconds}`;
 };
 
+const getVolumeIcon = (volume: number) => {
+  if (!volume) {
+    return IoVolumeMute;
+  } else if (volume > 0 && volume < 0.3) {
+    return IoVolumeLow;
+  } else if (volume > 0.3 && volume < 0.69) {
+    return IoVolumeMedium;
+  } else {
+    return IoVolumeHigh;
+  }
+};
+
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
@@ -49,13 +64,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
 
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showVolume, setShowVolume] = useState(false);
-  const [currentVolume, setCurrentVolume] = useState(0);
+  const [currentVolume, setCurrentVolume] = useState(1);
   const [mouseMoving, setMouseMoving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [previewSrc, setPreviewSrc] = useState("");
@@ -64,20 +79,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [pageLoaded, setPageLoaded] = useState(false);
   const [videoSrc, setVideoSrc] = useState<string>("");
 
-  const containerWidth = 200;
-  const windowWidth = window ? window.innerWidth : 0;
-
-  const adjustedPreviewX = Math.min(
-    Math.max(previewX, containerWidth / 2),
-    windowWidth - containerWidth / 2
-  );
-
   const handleOnMouseMoveTimeline = useCallback(
     (event: React.MouseEvent<HTMLInputElement>) => {
       const slider = event.target as HTMLInputElement;
       const rect = slider.getBoundingClientRect();
       const offsetX = event.clientX - rect.left;
       const previewTime = (offsetX / slider.offsetWidth) * duration;
+
       setPreviewTime(previewTime);
       setPreviewX(offsetX);
       captureFrame(previewTime);
@@ -140,6 +148,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       const currentVolume = value;
       videoRef.current.volume = currentVolume;
       setCurrentVolume(currentVolume);
+      setShowControls(true);
       if (!value) {
         setMuted(true);
       } else {
@@ -304,6 +313,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       .then((blob) => {
         const videoUrl = URL.createObjectURL(blob);
         setVideoSrc(videoUrl);
+        captureFrame(1);
       })
       .catch(console.warn)
       .finally(() => {
@@ -329,12 +339,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       bg="black"
       overflow="hidden"
     >
-      {!!previewTime && (
+      <Fade in={!!previewTime}>
         <Flex
           align="center"
           bg="rgba(0, 0, 0, 0.5)"
           position="absolute"
-          left={`${adjustedPreviewX}px`}
+          left={`${previewX}px`}
           bottom={28}
           flexDir="column"
           gap={1}
@@ -350,13 +360,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
           />
           <Text color="white">{formatTime(previewTime)}</Text>
         </Flex>
-      )}
+      </Fade>
       <video
         ref={videoRef}
         style={{ width: "100%", height: "100%", objectFit: "cover" }}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         controls={false}
+        poster={previewSrc}
         disablePictureInPicture
         controlsList="nodownload noremoteplayback nofullscreen"
         onClick={handleClickTogglePlay}
@@ -369,108 +380,127 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         <source src={videoSrc} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      <Box
-        position="absolute"
-        bottom="0"
-        left="0"
-        right="0"
-        px={6}
-        py={4}
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        transition="opacity 0.3s"
-        bg="rgba(0, 0, 0, 0.5)"
-        opacity={showControls ? 1 : 0}
-        zIndex="1"
-      >
-        <Flex gap={2} flexDir="column" w="100%">
-          <Flex gap={4} align="center">
-            <Slider
-              focusThumbOnChange={false}
-              value={currentTime}
-              max={duration}
-              step={0.1}
-              onChange={(val) => handleSliderChange(val)}
-              onMouseDown={handleSliderMouseDown}
-              onMouseUp={handleSliderMouseUp}
-              onMouseMove={handleOnMouseMoveTimeline}
-              onMouseLeave={handleOnMouseLeaveTimeline}
-              flexGrow={1}
-              h={4}
-            >
-              <SliderTrack>
-                <SliderFilledTrack bg="#fff" />
-              </SliderTrack>
-            </Slider>
-            <Text>{formatTime(duration - currentTime)}</Text>
-          </Flex>
-          <Flex justify="space-between" w="100%">
-            <Flex>
-              <IconButton
-                aria-label="Skip back"
-                Icon={IoPlaySkipBack}
-                onClick={() => handleSkip(-10)}
-                bg="transparent"
-                _hover={{ bg: "transparent" }}
-              />
-              <IconButton
-                aria-label="Play/Pause"
-                Icon={playing ? IoPause : IoPlay}
-                onClick={togglePlay}
-                bg="transparent"
-                _hover={{ bg: "transparent" }}
-              />
-              <IconButton
-                aria-label="Skip forward"
-                Icon={IoPlaySkipForward}
-                onClick={() => handleSkip(10)}
-                bg="transparent"
-                _hover={{ bg: "transparent" }}
-              />
-              <Flex
-                onMouseMove={() => setShowVolume(true)}
-                onMouseLeave={() => setShowVolume(false)}
-                gap={2}
+      <Fade in={!playing}>
+        <Box
+          position="absolute"
+          left="50%"
+          top="50%"
+          transform="translate(-50%, -50%)"
+          display={playing ? "none" : "flex"}
+          alignItems="center"
+          bg="rgba(0, 0, 0, 0.5)"
+          justifyContent="center"
+          width="100vw"
+          height="100vh"
+          onClick={togglePlay}
+          _hover={{ cursor: "pointer" }}
+        >
+          <Icon width={36} height={36} color="#fff" as={IoPlay} />
+        </Box>
+      </Fade>
+      {playing && (
+        <Box
+          position="absolute"
+          bottom="0"
+          left="0"
+          right="0"
+          px={6}
+          py={4}
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          transition="opacity 0.3s"
+          bg="rgba(0, 0, 0, 0.5)"
+          opacity={showControls ? 1 : 0}
+          zIndex="1"
+        >
+          <Flex gap={2} flexDir="column" w="100%">
+            <Flex gap={4} align="center">
+              <Slider
+                focusThumbOnChange={false}
+                value={currentTime}
+                max={duration}
+                step={0.1}
+                onChange={(val) => handleSliderChange(val)}
+                onMouseDown={handleSliderMouseDown}
+                onMouseUp={handleSliderMouseUp}
+                onMouseMove={handleOnMouseMoveTimeline}
+                onMouseLeave={handleOnMouseLeaveTimeline}
+                flexGrow={1}
+                h={4}
               >
+                <SliderTrack>
+                  <SliderFilledTrack bg="#fff" />
+                </SliderTrack>
+              </Slider>
+              <Text>{formatTime(duration - currentTime)}</Text>
+            </Flex>
+            <Flex justify="space-between" w="100%">
+              <Flex>
                 <IconButton
-                  aria-label="Mute/Unmute"
-                  Icon={muted ? IoVolumeMute : IoVolumeHigh}
-                  onClick={toggleMute}
+                  aria-label="Skip back"
+                  Icon={IoPlaySkipBack}
+                  onClick={() => handleSkip(-10)}
                   bg="transparent"
                   _hover={{ bg: "transparent" }}
                 />
-                {showVolume && (
-                  <Slider
-                    focusThumbOnChange={false}
-                    ml={2}
-                    w={86}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    onChange={handleVolumeChange}
-                    value={currentVolume}
-                    transition="opacity 2s"
-                    opacity={showVolume ? 1 : 0}
-                  >
-                    <SliderTrack>
-                      <SliderFilledTrack bg="#fff" />
-                    </SliderTrack>
-                    <SliderThumb />
-                  </Slider>
-                )}
+                <IconButton
+                  aria-label="Play/Pause"
+                  Icon={playing ? IoPause : IoPlay}
+                  onClick={togglePlay}
+                  bg="transparent"
+                  _hover={{ bg: "transparent" }}
+                />
+                <IconButton
+                  aria-label="Skip forward"
+                  Icon={IoPlaySkipForward}
+                  onClick={() => handleSkip(10)}
+                  bg="transparent"
+                  _hover={{ bg: "transparent" }}
+                />
+                <Flex
+                  onMouseMove={() => setShowVolume(true)}
+                  onMouseLeave={() => setShowVolume(false)}
+                  gap={2}
+                >
+                  <IconButton
+                    aria-label="Mute/Unmute"
+                    Icon={getVolumeIcon(currentVolume)}
+                    onClick={toggleMute}
+                    bg="transparent"
+                    _hover={{ bg: "transparent" }}
+                  />
+                  <Fade style={{ display: "flex", flex: 1 }} in={showVolume}>
+                    <Slider
+                      focusThumbOnChange={false}
+                      w={86}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={handleVolumeChange}
+                      value={currentVolume}
+                      transition="opacity 2s"
+                      opacity={showVolume ? 1 : 0}
+                    >
+                      <SliderTrack>
+                        <SliderFilledTrack bg="#fff" />
+                      </SliderTrack>
+                      <SliderThumb />
+                    </Slider>
+                  </Fade>
+                </Flex>
               </Flex>
+              <IconButton
+                aria-label="Full screen"
+                Icon={isFullScreen ? IoContract : IoExpand}
+                onClick={handleFullScreenToggle}
+                bg="transparent"
+                _hover={{ bg: "transparent" }}
+              />
             </Flex>
-            <IconButton
-              aria-label="Full screen"
-              Icon={isFullScreen ? IoContract : IoExpand}
-              onClick={handleFullScreenToggle}
-              bg="transparent"
-              _hover={{ bg: "transparent" }}
-            />
           </Flex>
-        </Flex>
-      </Box>
+        </Box>
+      )}
       <canvas ref={canvasRef} style={{ visibility: "hidden" }} />
       <video
         ref={hiddenVideoRef}
